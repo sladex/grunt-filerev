@@ -10,10 +10,12 @@ module.exports = function (grunt) {
     var options = this.options({
       encoding: 'utf8',
       algorithm: 'md5',
-      length: 8
+      length: 8,
+      dropCwd: false
     });
     var target = this.target;
     var filerev = grunt.filerev || {summary: {}};
+    var cwd = this.data.cwd || '';
 
     eachAsync(this.files, function (el, i, next) {
       var move = true;
@@ -60,12 +62,23 @@ module.exports = function (grunt) {
           grunt.file.copy(file, resultPath);
         }
 
-        filerev.summary[path.normalize(file)] = path.join(dirname, newName);
+        filerev.summary[fixPath(path.normalize(file))] = fixPath(path.join(dirname, newName));
         grunt.log.writeln(chalk.green('✔ ') + file + chalk.gray(' changed to ') + newName);
       });
 
       next();
     }, this.async());
+
+    function fixPath (path) {
+        // Drop cwd from path if relative option is set to true
+        if (options.dropCwd === true && cwd.length) {
+            var pos = path.indexOf(cwd);
+            if (pos === 0) {
+                path = path.slice(cwd.length);
+            }
+        }
+        return path;
+    }
 
     grunt.filerev = filerev;
   });
