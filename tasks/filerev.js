@@ -76,10 +76,10 @@ module.exports = function (grunt) {
            }
         }
 
-        filerev.summary[fixPath(path.normalize(file))] = fixPath(path.join(dirname, newName));
+        filerev.summary[dropCwd(path.normalize(file))] = dropCwd(path.join(dirname, newName));
         grunt.verbose.writeln(chalk.green('✔ ') + file + chalk.gray(' changed to ') + newName);
         if (sourceMap) {
-            filerev.summary[fixPath(path.normalize(file + '.map'))] = fixPath(path.join(dirname, newName + '.map'));
+            filerev.summary[dropCwd(path.normalize(file + '.map'))] = dropCwd(path.join(dirname, newName + '.map'));
             grunt.verbose.writeln(chalk.green('✔ ') + file + '.map' + chalk.gray(' changed to ') + newName + '.map');
         }
 
@@ -92,15 +92,20 @@ module.exports = function (grunt) {
       next();
     }, this.async());
 
-    function fixPath (path) {
-        // Drop cwd from path if relative option is set to true
-        if (options.dropCwd === true && cwd.length) {
-            var pos = path.indexOf(cwd);
-            if (pos === 0) {
-                path = path.slice(cwd.length);
+    // Drop cwd from path if relative option is set to true
+    function dropCwd (file) {
+        if (options.dropCwd === true && cwd) {
+            var filePath = file.split(path.sep),
+                cwdPath = path.normalize(cwd).split(path.sep),
+                pos = 0;
+            for (var i = 0; i < cwdPath.length; i++) {
+                if (filePath[i] === cwdPath[i]) {
+                    pos = i + 1;
+                }
             }
+            file = filePath.slice(pos).join(path.sep);
         }
-        return path;
+        return file;
     }
 
     grunt.filerev = filerev;

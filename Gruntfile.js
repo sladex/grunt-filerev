@@ -45,6 +45,15 @@ module.exports = function (grunt) {
         src: ['*'],
         dest: 'test/tmp/expand'
       },
+      withDropCwd: {
+        options: {
+          dropCwd: true
+        },
+        expand: true,
+        cwd: 'test/fixtures',
+        src: ['file.png'],
+        dest: 'test/tmp/withDropCwd'
+      },
       withSummaryAttributeName: {
         options: {
           summary: 'foo'
@@ -88,6 +97,9 @@ module.exports = function (grunt) {
   grunt.registerTask('checkSummary', 'Check that summary attribute is correctly created', function () {
     var src = path.normalize('test/fixtures/file.png');
     var expected = path.normalize('test/tmp/file.26365248.png');
+    assert.equal(grunt.filerev.summary[src], expected);
+    src = path.normalize('file.png');
+    expected = path.normalize('tmp/withDropCwd/file.26365248.png');
     assert.equal(grunt.filerev.summary[src], expected);
   });
 };
