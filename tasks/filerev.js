@@ -8,7 +8,6 @@ var eachAsync = require('each-async');
 module.exports = function (grunt) {
   grunt.registerMultiTask('filerev', 'File revisioning based on content hashing', function () {
     var options = this.options({
-      encoding: 'utf8',
       algorithm: 'md5',
       length: 8,
       dropCwd: false
@@ -33,7 +32,7 @@ module.exports = function (grunt) {
             grunt.fail.fatal('Destination ' + el.dest  + ' for target ' + target + ' is not a directory');
           }
         } catch (err) {
-          grunt.log.writeln('Destination dir ' + el.dest + ' does not exists for target ' + target + ': creating');
+          grunt.verbose.writeln('Destination dir ' + el.dest + ' does not exists for target ' + target + ': creating');
           grunt.file.mkdir(el.dest);
         }
         // We need to copy file as we now have a dest different from the src
@@ -46,7 +45,7 @@ module.exports = function (grunt) {
         }
 
         var dirname;
-        var hash = crypto.createHash(options.algorithm).update(grunt.file.read(file), options.encoding).digest('hex');
+        var hash = crypto.createHash(options.algorithm).update(fs.readFileSync(file)).digest('hex');
         var suffix = hash.slice(0, options.length);
         var ext = path.extname(file);
         var newName = [path.basename(file, ext), suffix, ext.slice(1)].join('.');
@@ -62,9 +61,33 @@ module.exports = function (grunt) {
           grunt.file.copy(file, resultPath);
         }
 
+        // Source maps
+        var sourceMap = false;
+        if (ext === '.js' || ext === '.css') {
+            var map = file + '.map';
+            resultPath += '.map';
+            if (grunt.file.exists(map)) {
+                if (move) {
+                    fs.renameSync(map, resultPath);
+                } else {
+                    grunt.file.copy(map, resultPath);
+                }
+                sourceMap = true;
+           }
+        }
+
         filerev.summary[fixPath(path.normalize(file))] = fixPath(path.join(dirname, newName));
-        grunt.log.writeln(chalk.green('✔ ') + file + chalk.gray(' changed to ') + newName);
+        grunt.verbose.writeln(chalk.green('✔ ') + file + chalk.gray(' changed to ') + newName);
+        if (sourceMap) {
+            filerev.summary[fixPath(path.normalize(file + '.map'))] = fixPath(path.join(dirname, newName + '.map'));
+            grunt.verbose.writeln(chalk.green('✔ ') + file + '.map' + chalk.gray(' changed to ') + newName + '.map');
+        }
+
       });
+
+      grunt.log.writeln('Revved ' + chalk.cyan(el.src.length) + ' ' +
+        (el.src.length === 1 ? 'file' : 'files')
+      );
 
       next();
     }, this.async());
